@@ -71,3 +71,5 @@ export const products = [
         description: "Modern sunglasses with a lightweight frame and timeless design."
     }
 ];
+
+export let cart = []

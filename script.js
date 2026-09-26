@@ -1,9 +1,12 @@
-import { products } from "./products.js";
+import { cart, products } from "./products.js";
 
 const container = document.getElementById("products");
 const categoryBtns = document.querySelectorAll(".category");
 const count = document.getElementById("product-count");
 const sort = document.getElementById("sort");
+const cartLength = document.getElementById('cart')
+
+cartLength.innerHTML = localStorage.getItem('cartLength')
 
 sort.addEventListener("change", (e) => {
   let selectedSort = e.target.value;
@@ -14,7 +17,6 @@ sort.addEventListener("change", (e) => {
   } else {
     filteredProducts = products.sort((a, b) => b.price - a.price);
   }
-
   showProducts(filteredProducts);
 });
 
@@ -38,7 +40,6 @@ categoryBtns.forEach((element) => {
     categoryBtns.forEach((btn) => {
       btn.classList.remove("active");
     });
-
     element.classList.add("active");
 
     selected = element.dataset.category;
@@ -106,24 +107,75 @@ const showProducts = (products) => {
         `;
   });
 };
-
 count.innerHTML = products.length;
-
 showProducts(products);
-
 const viewBtns = document.querySelectorAll(".view-btn");
-
 const modal = document.querySelector(".modal");
 const closeModalBtn = document.querySelector(".close-modal");
+const image = document.getElementById("modal-image");
+const title = document.getElementById("modal-name");
+const category = document.getElementById("modal-category");
+const description = document.getElementById("modal-description");
+const price = document.getElementById("modal-price");
+const quantity = document.getElementById("quantity");
+const decreaseBtn = document.getElementById("decrease");
+const increaseBtn = document.getElementById("increase");
+const cartBtn = document.querySelector(".add-cart");
+
+let selectedProduct = null;
+let q = 1;
 
 viewBtns.forEach((btn) => {
   btn.addEventListener("click", (e) => {
-    const selectedProduct = products.find((p) => p.id == e.target.id);
+    selectedProduct = products.find((p) => p.id == e.currentTarget.id);
 
-    console.log(selectedProduct);
+    image.src = selectedProduct.image;
+    title.innerText = selectedProduct.name;
+    category.innerText = selectedProduct.category;
+    description.innerText = selectedProduct.description;
+    price.innerText = `RS ${selectedProduct.price}`;
+
+    q = 1;
+    quantity.innerText = q;
 
     modal.classList.add("show");
   });
+});
+
+increaseBtn.addEventListener("click", () => {
+  q += 1;
+  quantity.innerText = q;
+});
+
+decreaseBtn.addEventListener("click", () => {
+  if (q > 1) {
+    q -= 1;
+    quantity.innerText = q;
+  }
+});
+
+cartBtn.addEventListener("click", () => {
+  if (!selectedProduct) return;
+
+  const item = {
+    id: selectedProduct.id,
+    image: selectedProduct.image,
+    name: selectedProduct.name,
+    quantity: q,
+    price: q * selectedProduct.price,
+  };
+
+  const isFound = cart.find((c) => c.id == item.id);
+
+  if (isFound) {
+    isFound.quantity += item.quantity;
+    isFound.price = isFound.quantity * selectedProduct.price;
+  } else {
+    cart.push(item);
+  }
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+  localStorage.setItem("cartLength", JSON.stringify(cart.length));
 });
 
 closeModalBtn.addEventListener("click", () => {
