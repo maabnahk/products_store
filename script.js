@@ -1,115 +1,12 @@
-import { cart, products } from "./products.js";
+import { cart, fav, products } from "./products.js";
 
 const container = document.getElementById("products");
 const categoryBtns = document.querySelectorAll(".category");
 const count = document.getElementById("product-count");
 const sort = document.getElementById("sort");
-const cartLength = document.getElementById('cart')
-
-cartLength.innerHTML = localStorage.getItem('cartLength')
-
-sort.addEventListener("change", (e) => {
-  let selectedSort = e.target.value;
-  let filteredProducts;
-
-  if (selectedSort == "low") {
-    filteredProducts = products.sort((a, b) => a.price - b.price);
-  } else {
-    filteredProducts = products.sort((a, b) => b.price - a.price);
-  }
-  showProducts(filteredProducts);
-});
-
+const cartLength = document.getElementById("cart");
 const search = document.getElementById("search");
-let searchTerm = "";
 
-search.addEventListener("input", (e) => {
-  searchTerm = e.target.value;
-
-  let filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().startsWith(searchTerm.trim().toLowerCase()),
-  );
-
-  showProducts(filteredProducts);
-});
-
-let selected = "all";
-
-categoryBtns.forEach((element) => {
-  element.addEventListener("click", () => {
-    categoryBtns.forEach((btn) => {
-      btn.classList.remove("active");
-    });
-    element.classList.add("active");
-
-    selected = element.dataset.category;
-    let filteredProducts;
-
-    if (selected == "all" || "") {
-      filteredProducts = products;
-    } else {
-      filteredProducts = products.filter(
-        (p) => p.category.toLowerCase() == selected.toLowerCase(),
-      );
-    }
-
-    showProducts(filteredProducts);
-  });
-});
-
-const showProducts = (products) => {
-  container.innerHTML = "";
-
-  products.forEach((p) => {
-    container.innerHTML += `
-            <div class="product-card">
-
-                <div class="product-image">
-
-                    <img
-                        src="${p.image}"
-                        alt="${p.name}"
-                    />
-
-                    <button class="favorite">
-                        <i class="fa-regular fa-heart"></i>
-                    </button>
-
-                </div>
-
-
-                <div class="product-info">
-
-                    <span class="product-category">
-                        ${p.category}
-                    </span>
-
-                    <h3 class="product-name">
-                        ${p.name}
-                    </h3>
-
-
-                    <div class="product-bottom">
-
-                        <span class="product-price">
-                            Rs. ${p.price}
-                        </span>
-
-                        <button class="view-btn" id=${p.id}>
-                            View Details
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </div>
-        `;
-  });
-};
-count.innerHTML = products.length;
-showProducts(products);
-const viewBtns = document.querySelectorAll(".view-btn");
 const modal = document.querySelector(".modal");
 const closeModalBtn = document.querySelector(".close-modal");
 const image = document.getElementById("modal-image");
@@ -124,10 +21,150 @@ const cartBtn = document.querySelector(".add-cart");
 
 let selectedProduct = null;
 let q = 1;
+let selectedCategory = "all";
+let searchTerm = "";
 
-viewBtns.forEach((btn) => {
-  btn.addEventListener("click", (e) => {
-    selectedProduct = products.find((p) => p.id == e.currentTarget.id);
+cartLength.innerHTML = localStorage.getItem("cartLength") || 0;
+
+const showProducts = (productList) => {
+  container.innerHTML = "";
+
+  count.innerHTML = productList.length;
+
+  if (productList.length === 0) {
+    return;
+  }
+
+  productList.forEach((p) => {
+    const isFavorite = fav.some((f) => f.id == p.id);
+
+    container.innerHTML += `
+      <div class="product-card">
+        <div class="product-image">
+          <img src="${p.image}" alt="${p.name}" />
+
+          <button 
+            class="favorite" 
+            id="${p.id}"
+            style="background-color: ${
+              isFavorite ? "var(--danger)" : "rgba(10, 10, 12, 0.8)"
+            }"
+          >
+            <i class="fa-regular fa-heart"></i>
+          </button>
+        </div>
+
+        <div class="product-info">
+          <span class="product-category">
+            ${p.category}
+          </span>
+
+          <h3 class="product-name">
+            ${p.name}
+          </h3>
+
+          <div class="product-bottom">
+            <span class="product-price">
+              Rs. ${p.price}
+            </span>
+
+            <button class="view-btn" id="${p.id}">
+              View Details
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+};
+
+const getFilteredProducts = () => {
+  let filteredProducts = [...products];
+
+  if (selectedCategory !== "all") {
+    filteredProducts = filteredProducts.filter(
+      (p) =>
+        p.category.toLowerCase() === selectedCategory.toLowerCase()
+    );
+  }
+
+  if (searchTerm.trim() !== "") {
+    filteredProducts = filteredProducts.filter((p) =>
+      p.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+    );
+  }
+
+  return filteredProducts;
+};
+
+const refreshProducts = () => {
+  showProducts(getFilteredProducts());
+};
+
+categoryBtns.forEach((element) => {
+  element.addEventListener("click", () => {
+    categoryBtns.forEach((btn) => {
+      btn.classList.remove("active");
+    });
+
+    element.classList.add("active");
+
+    selectedCategory = element.dataset.category;
+
+    refreshProducts();
+  });
+});
+
+search.addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  refreshProducts();
+});
+
+sort.addEventListener("change", (e) => {
+  let filteredProducts = getFilteredProducts();
+
+  if (e.target.value === "low") {
+    filteredProducts.sort((a, b) => a.price - b.price);
+  } else {
+    filteredProducts.sort((a, b) => b.price - a.price);
+  }
+
+  showProducts(filteredProducts);
+});
+
+container.addEventListener("click", (e) => {
+  const favoriteBtn = e.target.closest(".favorite");
+  const viewBtn = e.target.closest(".view-btn");
+
+  if (favoriteBtn) {
+    const selected = products.find(
+      (p) => p.id == favoriteBtn.id
+    );
+
+    if (!selected) return;
+
+    const index = fav.findIndex((f) => f.id == selected.id);
+
+    if (index !== -1) {
+      fav.splice(index, 1);
+      favoriteBtn.style.backgroundColor =
+        "rgba(10, 10, 12, 0.8)";
+    } else {
+      fav.push(selected);
+      favoriteBtn.style.backgroundColor = "var(--danger)";
+    }
+
+    localStorage.setItem("favorites", JSON.stringify(fav));
+
+    return;
+  }
+
+  if (viewBtn) {
+    selectedProduct = products.find(
+      (p) => p.id == viewBtn.id
+    );
+
+    if (!selectedProduct) return;
 
     image.src = selectedProduct.image;
     title.innerText = selectedProduct.name;
@@ -139,7 +176,7 @@ viewBtns.forEach((btn) => {
     quantity.innerText = q;
 
     modal.classList.add("show");
-  });
+  }
 });
 
 increaseBtn.addEventListener("click", () => {
@@ -169,15 +206,22 @@ cartBtn.addEventListener("click", () => {
 
   if (isFound) {
     isFound.quantity += item.quantity;
-    isFound.price = isFound.quantity * selectedProduct.price;
+    isFound.price =
+      isFound.quantity * selectedProduct.price;
   } else {
     cart.push(item);
   }
 
   localStorage.setItem("cart", JSON.stringify(cart));
   localStorage.setItem("cartLength", JSON.stringify(cart.length));
+
+  cartLength.innerHTML = cart.length;
+
+  modal.classList.remove("show");
 });
 
 closeModalBtn.addEventListener("click", () => {
   modal.classList.remove("show");
 });
+
+refreshProducts();

@@ -73,3 +73,4 @@ export const products = [
 ];
 
 export let cart = []
+export let fav = []
